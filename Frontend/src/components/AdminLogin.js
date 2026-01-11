@@ -1,26 +1,9 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { urlAdminLogin } from "../ApiEndpoints";
+import React, { useState } from "react";
+import { adminLogin, storeAuthData } from "../api/services/authService";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { showError, showSuccess } from "../utils/errorHandler";
 import { CircularProgress } from "@mui/material";
 import "./AdminLogin.css";
-
-axios.interceptors.response.use(
-    (response) => {
-        //7-22 copy-paste import everywhere
-        return response;
-    },
-    (error) => {
-        if (!error.response) {
-            alert("NETWORK ERROR");
-        } else {
-            const code = error.response.status;
-            if (code >= 400 && code <= 500) {
-                return Promise.resolve(error.response);
-            }
-            return Promise.reject(error);
-        }
-    }
-);
 
 const AdminLogin = () => {
     const [username, setUsername] = useState("");
@@ -28,49 +11,40 @@ const AdminLogin = () => {
     const [loading, setLoading] = useState(false);
 
     const handleLogin = () => {
-        console.log("ApiEndpoints:", urlAdminLogin);
         if (username.length <= 0) {
-            alert("Username cannot be empty");
+            showError("Username cannot be empty");
             return;
         }
         if (password.length <= 5) {
-            alert("Password length cannot be less than 6 characters");
+            showError("Password length cannot be less than 6 characters");
             return;
         }
-        adminLogin();
+        performLogin();
     };
-    // const [data, setData] = useState(null);
-    // useEffect(() => {
-    //   fetchData();
-    // }, []);
 
-    const adminLogin = async () => {
+    const performLogin = async () => {
         setLoading(true);
-        let response;
         try {
-            response = await axios.post(urlAdminLogin, { username, password });
+            const response = await adminLogin(username, password);
+            
+            if (!response || !response.success) {
+                showError(response?.message || "Login failed. Please try again.");
+                return;
+            }
 
-            console.log(response.data);
+            storeAuthData(response.data.token, 'admin', response.data.admin?._id);
+            localStorage.setItem(STORAGE_KEYS.GYM_ID, response.data.admin?._id || '');
+            window.location.assign("/admindashboard");
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred during login. Please try again.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-        localStorage.setItem("adtoken", response.data.data.token);
-        localStorage.setItem("gymId", response.data.data.admin._id);
-        window.location.assign("/admindashboard");
     };
+
     return (
         <div className="adminLogin-container">
             <div className="textbox">
-                
                 <h2>Admin</h2>
                 <input
                     type="text"

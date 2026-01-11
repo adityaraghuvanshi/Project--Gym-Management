@@ -1,30 +1,13 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { urlGetCustomerById, urlUpdateCustomer } from "../ApiEndpoints";
+import { getCustomerById, updateCustomer } from "../api/services/customerService";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { showError, showSuccess } from "../utils/errorHandler";
 import { useNavigate } from "react-router-dom";
 import { CircularProgress } from "@mui/material";
-import "./UpdateGymForm.css"
+import "./UpdateGymForm.css";
 
-axios.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    (error) => {
-        if (!error.response) {
-            alert("NETWORK ERROR");
-        } else {
-            const code = error.response.status;
-            if (code >= 400 && code <= 500) {
-                return Promise.resolve(error.response);
-            }
-            return Promise.reject(error);
-        }
-    }
-);
-
-const RegistrationForm = () => {
+const UpdateCustomerForm = () => {
     const navigate = useNavigate();
-
     const [name, setName] = useState("");
     const [address, setAddress] = useState("");
     const [age, setAge] = useState("");
@@ -35,127 +18,96 @@ const RegistrationForm = () => {
     const [dataLoading, setDataLoading] = useState(false);
 
     const handleRegistration = () => {
-        console.log("ApiEndpoints", urlUpdateCustomer);
-        const updatedCustomer = {
-            name,
-            address,
-            age,
-            height,
-            weight,
-        };
-
         if (name === "") {
-            alert("Name cannot be empty!");
-
+            showError("Name cannot be empty!");
             return;
         }
         if (address === "") {
-            alert("Address cannot be empty!");
-
+            showError("Address cannot be empty!");
             return;
         }
-        if (age > 98 && 4 < age) {
-            alert("Age must be under limits");
-
+        if (age > 98 || age < 4) {
+            showError("Age must be between 4 and 98");
             return;
         }
-        if (mobileNumber < 10) {
-            alert("Phone number must be 10 digits");
+        if (mobileNumber.length !== 10) {
+            showError("Phone number must be 10 digits");
             return;
         }
-        if (height > 250 && height < 50) {
-            alert("Height must be withing limits");
-
+        if (height > 250 || height < 50) {
+            showError("Height must be between 50 and 250 cm");
             return;
         }
-        if (weight > 250 && weight < 50) {
-            alert("Weight must be withing limits");
+        if (weight > 250 || weight < 50) {
+            showError("Weight must be between 50 and 250 kg");
             return;
         }
-        updateCustomer();
-        //window.location.assign("/billingpage");
+        updateCustomerData();
     };
 
     useEffect(() => {
-        getCustomerById();
+        getCustomerDataById();
     }, []);
 
-    const updateCustomer = async () => {
+    const updateCustomerData = async () => {
         setLoading(true);
-        let response;
-        const adtoken = localStorage.getItem("adtoken");
-        const customerId = localStorage.getItem("customerId");
+        const customerId = localStorage.getItem(STORAGE_KEYS.CUSTOMER_ID);
+
         try {
-            response = await axios.patch(
-                urlUpdateCustomer,
-                { name, address, age, mobileNumber, height, weight },
-                {
-                    headers: {
-                        Authorization: adtoken,
-                    },
-                    params: {
-                        id: customerId,
-                    },
-                }
-            );
-            console.log(response.data);
+            const customerData = {
+                name,
+                address,
+                age,
+                mobileNumber,
+                height,
+                weight,
+            };
+
+            const response = await updateCustomer(customerId, customerData);
+
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to update customer.");
+                return;
+            }
+
+            showSuccess("Customer Updated Successfully");
+            navigate(-1);
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while updating customer.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-        alert("Customer Updated Successfully");
-        navigate(-1);
     };
-    const getCustomerById = async () => {
+
+    const getCustomerDataById = async () => {
         setDataLoading(true);
-
-        let response;
-        const adtoken = localStorage.getItem("adtoken");
-        const customerId = localStorage.getItem("customerId");
+        const customerId = localStorage.getItem(STORAGE_KEYS.CUSTOMER_ID);
 
         try {
-            response = await axios.get(urlGetCustomerById, {
-                headers: {
-                    Authorization: adtoken,
-                },
-                params: {
-                    id: customerId,
-                },
-            });
+            const response = await getCustomerById(customerId);
+            
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to fetch customer details.");
+                return;
+            }
 
-            console.log(response.data.data);
+            const customer = response.data.customer;
+            setName(customer.name);
+            setAge(customer.age);
+            setAddress(customer.address);
+            setMobileNumber(customer.mobileNumber?.slice(3, 13) || '');
+            setHeight(customer.height);
+            setWeight(customer.weight);
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while fetching customer details.");
+        } finally {
+            setDataLoading(false);
         }
-        setDataLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-
-        setName(response.data.data.customer.name);
-        setAge(response.data.data.customer.age);
-        setAddress(response.data.data.customer.address);
-        setMobileNumber(response.data.data.customer.mobileNumber.slice(3, 13));
-        setHeight(response.data.data.customer.height);
-        setWeight(response.data.data.customer.weight);
     };
+
     return (
         <div className="registration-form">
             <h2>Update Customer Registration Form</h2>
-
             {!dataLoading && (
                 <div>
                     <div className="input-group">
@@ -217,4 +169,4 @@ const RegistrationForm = () => {
     );
 };
 
-export default RegistrationForm;
+export default UpdateCustomerForm;

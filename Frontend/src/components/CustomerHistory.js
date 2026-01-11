@@ -1,113 +1,71 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import {
-    urlGetAllCustomersAdmin,
-    urlDeleteCustomerById,
-} from "../ApiEndpoints";
+import { getAllCustomers, deleteCustomer } from "../api/services/customerService";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { showError, showSuccess } from "../utils/errorHandler";
 import { CircularProgress } from "@mui/material";
 
-axios.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    (error) => {
-        if (!error.response) {
-            alert("NETWORK ERROR");
-        } else {
-            const code = error.response.status;
-            if (code >= 400 && code <= 500) {
-                return Promise.resolve(error.response);
-            }
-            return Promise.reject(error);
-        }
-    }
-);
-
-const CustomerHistoryTable = (props) => {
+const CustomerHistoryTable = () => {
     const [loading, setLoading] = useState(false);
     const [dataLoading, setDataLoading] = useState(false);
     const [customers, setCustomers] = useState([]);
 
     const handleViewSubscription = (customerId) => {
-        localStorage.setItem("customerId", customerId);
+        localStorage.setItem(STORAGE_KEYS.CUSTOMER_ID, customerId);
         window.location.assign("/viewsubscription");
     };
 
     const handleUpdateCustomerForm = (index) => {
-        console.log(customers[index]._id);
-        const customerId = localStorage.setItem(
-            "customerId",
-            customers[index]._id
-        );
+        localStorage.setItem(STORAGE_KEYS.CUSTOMER_ID, customers[index]._id);
         window.location.assign("/updatecustomerform");
     };
 
     const handleAddCustomer = () => {
         window.location.assign("/registrationform");
     };
+
     const handleDeleteCustomer = (customerId) => {
         deleteCustomerById(customerId);
     };
 
     const deleteCustomerById = async (customerId) => {
         setDataLoading(true);
-        let response;
-        const adtoken = localStorage.getItem("adtoken");
-
         try {
-            response = await axios.delete(urlDeleteCustomerById, {
-                headers: {
-                    Authorization: adtoken,
-                },
-                params: {
-                    id: customerId,
-                },
-            });
-            console.log(response.data.data);
+            const response = await deleteCustomer(customerId);
+            
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to delete customer.");
+                return;
+            }
+
+            showSuccess("Customer Deleted Successfully");
+            fetchAllCustomers();
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while deleting customer.");
+        } finally {
+            setDataLoading(false);
         }
-        setDataLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-        alert("Customer Deleted Successfully");
-        getAllCustomers();
     };
 
-    const getAllCustomers = async () => {
+    const fetchAllCustomers = async () => {
         setLoading(true);
-        let response;
-        const adtoken = localStorage.getItem("adtoken");
         try {
-            response = await axios.get(urlGetAllCustomersAdmin, {
-                headers: {
-                    Authorization: adtoken,
-                },
-            });
+            const response = await getAllCustomers();
+            
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to fetch customers.");
+                return;
+            }
+
+            setCustomers(response.data.customers || []);
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while fetching customers.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-        setCustomers(response.data.data.customers);
     };
 
     useEffect(() => {
-        getAllCustomers();
-        console.log("Page loaded successfully");
+        fetchAllCustomers();
     }, []);
 
     return (

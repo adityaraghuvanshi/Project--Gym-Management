@@ -1,0 +1,27 @@
+.main-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-background);
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--spacing-xl);
+  background-color: var(--color-background);
+  min-height: calc(100vh - 140px);
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: var(--spacing-lg);
+    min-height: calc(100vh - 120px);
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: var(--spacing-md);
+    min-height: calc(100vh - 100px);
+  }
+}

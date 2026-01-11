@@ -1,0 +1,119 @@
+.gym-form-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+}
+
+.gym-form-card {
+  padding: var(--spacing-xxl);
+}
+
+.gym-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding-bottom: var(--spacing-xl);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.form-section-title {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--color-text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.form-section-title::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  border-radius: var(--radius-sm);
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.form-row-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+.form-actions {
+  margin-top: var(--spacing-lg);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+.submit-button {
+  min-width: 160px;
+  padding: 14px 32px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.cancel-button {
+  min-width: 120px;
+  padding: 14px 24px;
+}
+
+@media (max-width: 768px) {
+  .gym-form-page {
+    padding: var(--spacing-lg);
+  }
+  
+  .gym-form-card {
+    padding: var(--spacing-xl);
+  }
+  
+  .form-row-split {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  .form-actions {
+    flex-direction: column-reverse;
+  }
+  
+  .submit-button,
+  .cancel-button {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .gym-form-page {
+    padding: var(--spacing-md);
+  }
+  
+  .gym-form-card {
+    padding: var(--spacing-lg);
+  }
+  
+  .form-section {
+    gap: var(--spacing-md);
+    padding-bottom: var(--spacing-lg);
+  }
+}

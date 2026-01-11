@@ -1,56 +1,50 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { urlGetCustomerById } from "../ApiEndpoints";
+import { getCustomerById } from "../api/services/customerService";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { showError } from "../utils/errorHandler";
+import { CircularProgress } from "@mui/material";
 
 const ViewSubscription = () => {
     const [customer, setCustomer] = useState({});
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        console.log("ApiEndpoints", urlGetCustomerById);
         getCustomerDetails();
     }, []);
 
     const getCustomerDetails = async () => {
         setLoading(true);
-        let response;
-        const adtoken = localStorage.getItem("adtoken");
-        const customerId = localStorage.getItem("customerId");
+        const customerId = localStorage.getItem(STORAGE_KEYS.CUSTOMER_ID);
+
         try {
-            response = await axios.get(urlGetCustomerById, {
-                headers: {
-                    Authorization: adtoken,
-                },
-                params: {
-                    id: customerId,
-                },
-            });
+            const response = await getCustomerById(customerId);
+            
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to fetch customer details.");
+                return;
+            }
+
+            setCustomer(response.data.customer || {});
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while fetching customer details.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-        console.log(response.data.data);
-        setCustomer(response.data.data.customer);
     };
+
+    if (loading) {
+        return <CircularProgress />;
+    }
 
     return (
         <div className="gym-subscription-page">
             <h2>Customer Subscription Details</h2>
-            <h3> Name: {customer.name}</h3>
-            <h3> Age: {customer.age}</h3>
+            <h3>Name: {customer.name}</h3>
+            <h3>Age: {customer.age}</h3>
             <h3>Mobile Number: {customer.mobileNumber}</h3>
             <h3>Height: {customer.height}</h3>
             <h3>Weight: {customer.weight}</h3>
-            <h3>Subscription on: {customer.subscribedUpto}</h3>{" "}
-            {/*Change time format*/}
+            <h3>Subscription on: {customer.subscribedUpto ? new Date(customer.subscribedUpto).toLocaleDateString() : 'N/A'}</h3>
         </div>
     );
 };

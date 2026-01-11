@@ -1,16 +1,12 @@
-import React,{useEffect,useState} from "react";
-import axios from 'axios';
-import { urlGetGymDetailsAdmin, urlUpdateSubscriptionDetails } from "../ApiEndpoints";
+import React, { useEffect, useState } from "react";
+import { getGymDetails } from "../api/services/gymService";
+import { updateSubscriptionDetails } from "../api/services/subscriptionService";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { showError, showSuccess } from "../utils/errorHandler";
 import { CircularProgress } from "@mui/material";
 import './SubscriptionSettings.css';
 
 const SubscriptionSettings = () => {
-  const [subscriptionData, setSubscriptionData] = useState({
-    gold: { monthly: 0, yearly: 0 },
-    silver: { monthly: 0, yearly: 0 },
-    platinum: { monthly: 0, yearly: 0 }
-  });
-
   const [silverMonthly, setSilverMonthly] = useState(0);
   const [silverAnnual, setSilverAnnual] = useState(0);
   const [goldMonthly, setGoldMonthly] = useState(0);
@@ -20,109 +16,68 @@ const SubscriptionSettings = () => {
   const [dataLoading, setDataLoading] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleAmountChange = (subscriptionType, period, amount) => {
-    setSubscriptionData(prevData => ({
-      ...prevData,
-      [subscriptionType]: {
-        ...prevData[subscriptionType],
-        [period]: amount
-      }
-    }));
-  };
- 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    // You can save subscriptionData to a backend server or storage here
-    updateSubscription();
-  };
-
-
   useEffect(() => {
     fetchSubscriptionData();
   }, []);
   
   const fetchSubscriptionData = async () => {
     setDataLoading(true);
-
-    let response;
-    const adtoken = localStorage.getItem('adtoken');
+    const gymId = localStorage.getItem(STORAGE_KEYS.GYM_ID);
 
     try {
-      response = await axios.get(
-        urlGetGymDetailsAdmin, 
-        {
-          headers:{
-            "Authorization":adtoken
-          }
-        }
-      );
-      console.log(response.data);
+      const response = await getGymDetails(gymId);
+      
+      if (!response || !response.success) {
+        showError(response?.message || "Failed to fetch subscription data.");
+        return;
+      }
+
+      const gym = response.data.gym;
+      setSilverMonthly(gym.silverMonthly || 0);
+      setSilverAnnual(gym.silverAnnual || 0);
+      setGoldMonthly(gym.goldMonthly || 0);
+      setGoldAnnual(gym.goldAnnual || 0);
+      setPlatinumMonthly(gym.platinumMonthly || 0);
+      setPlatinumAnnual(gym.platinumAnnual || 0);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      showError("An error occurred while fetching subscription data.");
+    } finally {
+      setDataLoading(false);
     }
-    setDataLoading(false);
+  };
 
-    if(!response){
-      alert("Something went wrong.");
-      return
-    }
-    if(!response.data.success){
-      alert(response.data.message);
-      return
-    }
-
-    setSilverMonthly(response.data.data.gym.silverMonthly);
-    setSilverAnnual(response.data.data.gym.silverAnnual);
-    setGoldMonthly(response.data.data.gym.goldMonthly);
-    setGoldAnnual(response.data.data.gym.goldAnnual);
-    setPlatinumMonthly(response.data.data.gym.platinumMonthly);
-    setPlatinumAnnual(response.data.data.gym.platinumAnnual);
-
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    updateSubscription();
   };
 
   const updateSubscription = async () => {
     setLoading(true);
 
-    let response;
-    const adtoken = localStorage.getItem('adtoken');
-
     try {
-      response = await axios.patch(
-        urlUpdateSubscriptionDetails, 
-        {
-          silverMonthly,
-          silverAnnual,
-          goldMonthly,
-          goldAnnual,
-          platinumMonthly,
-          platinumAnnual
-        },
-        {
-          headers:{
-            "Authorization":adtoken
-          }
-        }
-      );
-      console.log(response.data);
+      const subscriptionData = {
+        silverMonthly,
+        silverAnnual,
+        goldMonthly,
+        goldAnnual,
+        platinumMonthly,
+        platinumAnnual
+      };
+
+      const response = await updateSubscriptionDetails(subscriptionData);
+
+      if (!response || !response.success) {
+        showError(response?.message || "Failed to update subscription details.");
+        return;
+      }
+
+      showSuccess("Subscription details updated successfully");
     } catch (error) {
-      console.error('Error fetching data:', error);
+      showError("An error occurred while updating subscription details.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-
-    if(!response){
-      alert("Something went wrong.");
-      return
-    }
-    if(!response.data.success){
-      alert(response.data.message);
-      return
-    }
-
-    alert("Subscription details updated successfully");
-  
-
   };
-  
   
   return (
     <div className="subscription-container">

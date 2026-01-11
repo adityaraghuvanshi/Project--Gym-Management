@@ -21,12 +21,8 @@ const BMICalculator = () => {
   }, []);
   
   const fetchData = async () => {
-    try {
-      const response = await axios.get('https://api.example.com/data');
-      setData(response.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
+    // Placeholder for future data fetching
+    // This function can be implemented when needed
   };
   return (
     <div className="bmi-calculator">

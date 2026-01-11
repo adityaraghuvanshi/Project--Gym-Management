@@ -1,14 +1,17 @@
-import React,{useEffect,useState} from "react";
+import React, { useEffect, useState } from "react";
+import { getGymDetails } from "../api/services/gymService";
+import { applySubscription } from "../api/services/subscriptionService";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { showError, showSuccess } from "../utils/errorHandler";
+import { CircularProgress } from "@mui/material";
 import './BillingPage.css';
-import axios from 'axios';
-
-import { urlGetGymDetailsAdmin } from "../ApiEndpoints";
 
 const BillingPage = () => {
   const [selectedMembership, setSelectedMembership] = useState('');
   const [selectedSubscription, setSelectedSubscription] = useState('monthly');
   const [months, setMonths] = useState(1);
-  const [dataLoading , setDataLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [membershipData, setMembershipData] = useState({
     gold: { monthly: 0, yearly: 0 },
@@ -22,8 +25,6 @@ const BillingPage = () => {
     setSelectedMembership(event.target.value);
   };
 
-  
-
   const handleSubscriptionChange = (event) => {
     setSelectedSubscription(event.target.value);
   };
@@ -36,10 +37,10 @@ const BillingPage = () => {
     if (selectedMembership && selectedSubscription) {
       const membershipPrice = membershipData[selectedMembership][selectedSubscription];
       const subscriptionTotal = selectedSubscription === 'monthly' ? membershipPrice * months : membershipPrice;
-      setCalculatedTotal(subscriptionTotal); // Update the calculated total
+      setCalculatedTotal(subscriptionTotal);
       return subscriptionTotal;
     }
-    setCalculatedTotal(0); // Reset the calculated total
+    setCalculatedTotal(0);
     return 0;
   };
   
@@ -49,101 +50,118 @@ const BillingPage = () => {
   
   const fetchGymDetails = async () => {
     setDataLoading(true);
-
-    let response;
-    const adtoken = localStorage.getItem('adtoken');
+    const gymId = localStorage.getItem(STORAGE_KEYS.GYM_ID);
 
     try {
-      response = await axios.get(
-        urlGetGymDetailsAdmin, 
-        {
-          headers:{
-            "Authorization":adtoken
-          }
-        }
-      );
-      console.log(response.data);
+      const response = await getGymDetails(gymId);
+      
+      if (!response || !response.success) {
+        showError(response?.message || "Failed to fetch gym details.");
+        return;
+      }
+
+      const gym = response.data.gym;
+      setMembershipData({
+        gold: { monthly: gym.goldMonthly || 0, yearly: gym.goldAnnual || 0 },
+        silver: { monthly: gym.silverMonthly || 0, yearly: gym.silverAnnual || 0 },
+        platinum: { monthly: gym.platinumMonthly || 0, yearly: gym.platinumAnnual || 0 }
+      });
     } catch (error) {
-      console.error('Error fetching data:', error);
+      showError("An error occurred while fetching gym details.");
+    } finally {
+      setDataLoading(false);
     }
-    setDataLoading(false);
+  };
 
-    if(!response){
-      alert("Something went wrong.");
-      return
-    }
-    if(!response.data.success){
-      alert(response.data.message);
-      return
+  const handleApplySubscription = async () => {
+    if (!selectedMembership) {
+      showError("Please select a membership type");
+      return;
     }
 
-    setMembershipData(
-      {
-        gold: { monthly: response.data.data.gym.goldMonthly, yearly: response.data.data.gym.goldAnnual },
-        silver: { monthly: response.data.data.gym.silverMonthly, yearly: response.data.data.gym.silverAnnual },
-        platinum: { monthly: response.data.data.gym.platinumMonthly, yearly: response.data.data.gym.platinumAnnual }
-      }    
-    );
+    if (calculatedTotal <= 0) {
+      showError("Please calculate the total first");
+      return;
+    }
 
-    // setSilverMonthly(response.data.data.gym.silverMonthly);
-    // setSilverAnnual(response.data.data.gym.silverAnnual);
-    // setGoldMonthly(response.data.data.gym.goldMonthly);
-    // setGoldAnnual(response.data.data.gym.goldAnnual);
-    // setPlatinumMonthly(response.data.data.gym.platinumMonthly);
-    // setPlatinumAnnual(response.data.data.gym.platinumAnnual);
+    setLoading(true);
+    const customerId = localStorage.getItem(STORAGE_KEYS.CUSTOMER_ID);
 
+    try {
+      // Calculate days based on subscription type
+      let days = 0;
+      if (selectedSubscription === 'monthly') {
+        days = months * 30; // Approximate 30 days per month
+      } else {
+        days = 365; // 365 days for yearly
+      }
+
+      const response = await applySubscription(customerId, days);
+
+      if (!response || !response.success) {
+        showError(response?.message || "Failed to apply subscription.");
+        return;
+      }
+
+      showSuccess("Subscription applied successfully");
+      window.location.assign("/customerdashboard");
+    } catch (error) {
+      showError("An error occurred while applying subscription.");
+    } finally {
+      setLoading(false);
+    }
   };
   
   return (
     <div>
       <h1>Billing Page</h1>
-      <div>
-        <label>
-          Your Selected Membership is:
-          <select value={selectedMembership} onChange={handleMembershipChange}>
-            <option value="">Select</option>
-            <option value="gold">Gold</option>
-            <option value="silver">Silver</option>
-            <option value="platinum">Platinum</option>
-          </select>
-        </label>
-      </div>
-      <div>
-        <label>
-          Select Subscription:
-          <select value={selectedSubscription} onChange={handleSubscriptionChange}>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-          </select>
-        </label>
-      </div>
-      {selectedSubscription === 'monthly' && (
-        <div>
-          <label>
-            Number of Months:
-            <input type="number" value={months} onChange={handleMonthsChange} />
-          </label>
-        </div>
+      {dataLoading ? (
+        <CircularProgress />
+      ) : (
+        <>
+          <div>
+            <label>
+              Your Selected Membership is:
+              <select value={selectedMembership} onChange={handleMembershipChange}>
+                <option value="">Select</option>
+                <option value="gold">Gold</option>
+                <option value="silver">Silver</option>
+                <option value="platinum">Platinum</option>
+              </select>
+            </label>
+          </div>
+          <div>
+            <label>
+              Select Subscription:
+              <select value={selectedSubscription} onChange={handleSubscriptionChange}>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </label>
+          </div>
+          {selectedSubscription === 'monthly' && (
+            <div>
+              <label>
+                Number of Months:
+                <input type="number" value={months} onChange={handleMonthsChange} min="1" />
+              </label>
+            </div>
+          )}
+          <div>
+            <div>
+              <button onClick={calculateTotal}>Calculate</button>
+            </div>
+            {calculatedTotal > 0 && (
+              <div>
+                <p>Calculated Total: Rs. {calculatedTotal} ₹/-</p>
+                <button onClick={handleApplySubscription} disabled={loading}>
+                  {loading ? <CircularProgress size={20} /> : "Apply Subscription"}
+                </button>
+              </div>
+            )}
+          </div>
+        </>
       )}
-      {/* {selectedSubscription === 'monthly' && (
-        <div>
-          <label>
-            Number of Months:
-            <input type="number" value={months} onChange={handleMonthsChange} />
-          </label>
-        </div>
-      )} */}
-      <div>
-      <div>
-        <button onClick={calculateTotal}>Calculate</button>
-      </div>
-      {calculatedTotal > 0 && (
-        <div>
-          <p>Calculated Total: Rs. {calculatedTotal} ₹/-</p>
-        </div>
-      )}
-      
-    </div>
     </div>
   );
 };

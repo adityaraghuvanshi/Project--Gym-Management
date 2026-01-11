@@ -1,117 +1,77 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { urlAddGym } from "../ApiEndpoints";
+import React, { useState } from "react";
+import { addGym } from "../api/services/gymService";
+import { showError, showSuccess } from "../utils/errorHandler";
 import { useNavigate } from "react-router-dom";
 import CircularProgress from "@mui/material/CircularProgress";
 
-axios.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    (error) => {
-        if (!error.response) {
-            alert("NETWORK ERROR");
-        } else {
-            const code = error.response.status;
-            if (code >= 400 && code <= 500) {
-                return Promise.resolve(error.response);
-            }
-            return Promise.reject(error);
-        }
-    }
-);
-
 const GymForm = () => {
     const navigate = useNavigate();
-
     const [gymName, setGymName] = useState("");
     const [address, setAddress] = useState("");
     const [adminName, setAdminName] = useState("");
     const [userName, setUserName] = useState("");
-    const [phoneNumber, setPhoneNumber] = useState(""); //change
+    const [phoneNumber, setPhoneNumber] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = (e) => {
-        console.log("ApiEndPoints", urlAddGym);
-
         e.preventDefault();
-        const newGym = {
-            gymName,
-            address,
-            adminName,
-            phoneNumber,
-            userName,
-            password,
-        };
 
-        if (gymName === false) {
-            alert("Gym Name cannot be empty");
+        if (!gymName || gymName.trim() === "") {
+            showError("Gym Name cannot be empty");
             return;
         }
-        if (adminName === false) {
-            alert("Admin Name cannot be empty");
+        if (!adminName || adminName.trim() === "") {
+            showError("Admin Name cannot be empty");
             return;
         }
-        if (address === false) {
-            alert("address cannot be empty");
+        if (!address || address.trim() === "") {
+            showError("Address cannot be empty");
             return;
         }
-        if (userName === false) {
-            alert("Username cannot be empty");
+        if (!userName || userName.trim() === "") {
+            showError("Username cannot be empty");
             return;
         }
         if (phoneNumber.length !== 10) {
-            alert("Phone number must be 10 digits");
+            showError("Phone number must be 10 digits");
             return;
         }
         if (password.length <= 5) {
-            alert("Password length cannot be less than 6 characters");
+            showError("Password length cannot be less than 6 characters");
             return;
         }
-        addGym();
+        addNewGym();
     };
 
-    const addGym = async () => {
+    const addNewGym = async () => {
         setLoading(true);
-        let response;
-        const suptoken = localStorage.getItem("suptoken");
         try {
-            response = await axios.post(
-                urlAddGym,
-                {
-                    gymName,
-                    address,
-                    adminName,
-                    username: userName,
-                    mobileNumber: "+91" + phoneNumber,
-                    password,
-                },
-                {
-                    headers: {
-                        Authorization: suptoken,
-                    },
-                }
-            );
-            // setData(response.data);
+            const gymData = {
+                gymName,
+                address,
+                adminName,
+                username: userName,
+                mobileNumber: "+91" + phoneNumber,
+                password,
+            };
 
-            console.log(response.data);
+            const response = await addGym(gymData);
+
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to add gym.");
+                return;
+            }
+
+            showSuccess("Gym Added Successfully");
+            navigate(-1);
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while adding gym.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-        alert("Gym Added Successfully");
-
-        navigate(-1);
     };
+
     return (
         <div className="gym-form">
             <h2>Add a Gym</h2>

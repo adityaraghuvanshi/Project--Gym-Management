@@ -1,0 +1,28 @@
+.super-admin-dashboard {
+  padding: var(--spacing-xl);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.action-button {
+  margin-right: var(--spacing-sm);
+}
+
+@media (max-width: 768px) {
+  .super-admin-dashboard {
+    padding: var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .super-admin-dashboard {
+    padding: var(--spacing-md);
+  }
+  
+  .action-button {
+    margin-right: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+    font-size: 0.8125rem;
+    padding: 8px 12px;
+  }
+}

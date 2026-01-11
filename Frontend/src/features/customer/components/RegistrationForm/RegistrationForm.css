@@ -1,0 +1,70 @@
+.registration-form-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
+}
+
+.registration-form-card {
+  padding: var(--spacing-xxl);
+}
+
+.registration-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.form-row-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+.form-actions {
+  margin-top: var(--spacing-md);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.submit-button {
+  min-width: 200px;
+  padding: 14px 32px;
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .registration-form-page {
+    padding: var(--spacing-lg);
+  }
+  
+  .registration-form-card {
+    padding: var(--spacing-xl);
+  }
+  
+  .form-row-split {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .registration-form-page {
+    padding: var(--spacing-md);
+  }
+  
+  .registration-form-card {
+    padding: var(--spacing-lg);
+  }
+  
+  .submit-button {
+    width: 100%;
+    min-width: auto;
+  }
+}

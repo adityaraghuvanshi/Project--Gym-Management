@@ -1,25 +1,9 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { urlAddCustomerAdmin } from "../ApiEndpoints";
+import React, { useState } from "react";
+import { addCustomer } from "../api/services/customerService";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { showError, showSuccess } from "../utils/errorHandler";
 import { useNavigate } from "react-router-dom";
 import CircularProgress from "@mui/material/CircularProgress";
-
-axios.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    (error) => {
-        if (!error.response) {
-            alert("NETWORK ERROR");
-        } else {
-            const code = error.response.status;
-            if (code >= 400 && code <= 500) {
-                return Promise.resolve(error.response);
-            }
-            return Promise.reject(error);
-        }
-    }
-);
 
 const RegistrationForm = () => {
     const navigate = useNavigate();
@@ -32,81 +16,60 @@ const RegistrationForm = () => {
     const [loading, setLoading] = useState(false);
 
     const handleRegistration = () => {
-        console.log("APiEndpoints", urlAddCustomerAdmin);
-
-        const newCustomer = {
-            name,
-            address,
-            age,
-            mobileNumber,
-            height,
-            weight,
-        };
-
         if (name === "") {
-            alert("Name cannot be empty!");
-
+            showError("Name cannot be empty!");
             return;
         }
         if (address === "") {
-            alert("Address cannot be empty!");
-
+            showError("Address cannot be empty!");
             return;
         }
-        if (age > 98 && 4 < age) {
-            alert("Age must be under limits");
-
+        if (age > 98 || age < 4) {
+            showError("Age must be between 4 and 98");
             return;
         }
-        if (mobileNumber < 10) {
-            alert("Phone number must be 10 digits");
+        if (mobileNumber.length !== 10) {
+            showError("Phone number must be 10 digits");
             return;
         }
-        if (height > 250 && height < 50) {
-            alert("Height must be withing limits");
-
+        if (height > 250 || height < 50) {
+            showError("Height must be between 50 and 250 cm");
             return;
         }
-        if (weight > 250 && weight < 50) {
-            alert("Weight must be withing limits");
+        if (weight > 250 || weight < 50) {
+            showError("Weight must be between 50 and 250 kg");
             return;
         }
-        addCustomer();
-        
+        addNewCustomer();
     };
 
-    const addCustomer = async () => {
+    const addNewCustomer = async () => {
         setLoading(true);
-        let response;
-        const adtoken = localStorage.getItem("adtoken");
         try {
-            response = await axios.post(
-                urlAddCustomerAdmin,
-                { name, address, age, mobileNumber, height, weight },
-                {
-                    headers: {
-                        Authorization: adtoken,
-                    },
-                }
-            );
+            const customerData = {
+                name,
+                address,
+                age,
+                mobileNumber,
+                height,
+                weight,
+            };
 
-            console.log(response.data);
+            const response = await addCustomer(customerData);
+
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to add customer.");
+                return;
+            }
+
+            showSuccess("Customer Added Successfully");
+            localStorage.setItem(STORAGE_KEYS.CUSTOMER_ID, response.data.customer._id);
+            window.location.assign("/billingpage");
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while adding customer.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-        alert("Customer Added Successfully");
-        console.log(response.data.data);
-        localStorage.setItem('customerId', response.data.data.customer._id);
-        window.location.assign("/billingpage");
     };
 
     return (
@@ -160,39 +123,6 @@ const RegistrationForm = () => {
                     onChange={(e) => setWeight(e.target.value)}
                 />
             </div>
-
-            {/* <div className="input-group">
-        <label>Membership:</label>
-        <div className="radio-group">
-          <label>
-            <input
-              type="radio"
-              value="Silver"
-              checked={membership === 'Silver'}
-              onChange={() => setMembership('Silver')}
-            />
-            Silver
-          </label>
-          <label>
-            <input
-              type="radio"
-              value="Gold"
-              checked={membership === 'Gold'}
-              onChange={() => setMembership('Gold')}
-            />
-            Gold
-          </label>
-          <label>
-            <input
-              type="radio"
-              value="Platinum"
-              checked={membership === 'Platinum'}
-              onChange={() => setMembership('Platinum')}
-            />
-            Platinum
-          </label>          
-        </div>         
-      </div>*/}
             {loading && <CircularProgress />}
             {!loading && <button onClick={handleRegistration}>Register</button>}
         </div>

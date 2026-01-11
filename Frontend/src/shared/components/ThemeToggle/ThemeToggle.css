@@ -1,0 +1,80 @@
+.theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.theme-toggle:hover {
+  background-color: var(--color-surface-hover);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.theme-toggle-track {
+  width: 56px;
+  height: 32px;
+  background: var(--color-surface-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}
+
+.theme-toggle:hover .theme-toggle-track {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.theme-toggle-thumb {
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-md);
+  color: var(--color-text-primary);
+}
+
+.theme-toggle-thumb.dark {
+  transform: translateX(0);
+}
+
+.theme-toggle-thumb.light {
+  transform: translateX(24px);
+}
+
+.theme-toggle-thumb svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle-thumb:hover svg {
+  transform: scale(1.1);
+}
+
+[data-theme="light"] .theme-toggle-track {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-color: #f59e0b;
+}
+
+[data-theme="light"] .theme-toggle-thumb {
+  background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
+  color: #f59e0b;
+}

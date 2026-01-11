@@ -1,30 +1,13 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { urlUpdateGym, urlGetGymById } from "../ApiEndpoints";
+import { getGymById, updateGym } from "../api/services/gymService";
+import { STORAGE_KEYS } from "../constants/storageKeys";
+import { showError, showSuccess } from "../utils/errorHandler";
 import { useNavigate } from "react-router-dom";
 import { CircularProgress } from "@mui/material";
 
-axios.interceptors.response.use(
-    (response) => {
-        return response;
-    },
-    (error) => {
-        if (!error.response) {
-            alert("NETWORK ERROR");
-        } else {
-            const code = error.response.status;
-            if (code >= 400 && code <= 500) {
-                return Promise.resolve(error.response);
-            }
-            return Promise.reject(error);
-        }
-    }
-);
-
 const UpdateGymForm = () => {
     const navigate = useNavigate();
-
-    const [gymName, setGymName] = useState(""); //state of page-elements should rebuild/update
+    const [gymName, setGymName] = useState("");
     const [address, setAddress] = useState("");
     const [adminName, setAdminName] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
@@ -34,142 +17,98 @@ const UpdateGymForm = () => {
     const [dataLoading, setDataLoading] = useState(false);
 
     const handleSubmit = (e) => {
-        console.log("ApiEndpoints", urlUpdateGym);
-
         e.preventDefault();
 
-        const updatedGym = {
-            gymName,
-            address,
-            adminName,
-            phoneNumber,
-            userName,
-            password,
-        };
-
-        if (gymName === false) {
-            alert("Gym Name cannot be empty");
+        if (!gymName || gymName.trim() === "") {
+            showError("Gym Name cannot be empty");
             return;
         }
-        if (adminName === false) {
-            alert("Admin Name cannot be empty");
+        if (!adminName || adminName.trim() === "") {
+            showError("Admin Name cannot be empty");
             return;
         }
-        if (address === false) {
-            alert("address cannot be empty");
+        if (!address || address.trim() === "") {
+            showError("Address cannot be empty");
             return;
         }
-        if (userName === false) {
-            alert("Username cannot be empty");
+        if (!userName || userName.trim() === "") {
+            showError("Username cannot be empty");
             return;
         }
         if (phoneNumber.length !== 10) {
-            alert("Phone number must be 10 digits");
+            showError("Phone number must be 10 digits");
             return;
         }
         if (password.length <= 5) {
-            alert("Password length cannot be less than 6 characters");
+            showError("Password length cannot be less than 6 characters");
             return;
         }
-        updateGym();
+        updateGymData();
     };
+
     useEffect(() => {
         getGymDataById();
     }, []);
 
-    const updateGym = async () => {
+    const updateGymData = async () => {
         setLoading(true);
-        let response;
-        const suptoken = localStorage.getItem("suptoken");
-        const gymId = localStorage.getItem("gymId");
+        const gymId = localStorage.getItem(STORAGE_KEYS.GYM_ID);
 
         try {
-            response = await axios.patch(
-                urlUpdateGym,
-                {
-                    gymName,
-                    address,
-                    adminName,
-                    username: userName,
-                    mobileNumber: "+91" + phoneNumber,
-                    password,
-                },
-                {
-                    headers: {
-                        Authorization: suptoken,
-                    },
-                    params: {
-                        id: gymId,
-                    },
-                }
-            );
+            const gymData = {
+                gymName,
+                address,
+                adminName,
+                username: userName,
+                mobileNumber: "+91" + phoneNumber,
+                password,
+            };
 
-            //setData(response.data);
+            const response = await updateGym(gymId, gymData);
 
-            console.log(response.data);
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to update gym.");
+                return;
+            }
+
+            showSuccess("Gym Updated Successfully");
+            navigate(-1);
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while updating gym.");
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-
-        alert("Gym Updated Sycessfully");
-
-        navigate(-1);
     };
+
     const getGymDataById = async () => {
         setDataLoading(true);
-
-        let response;
-        const suptoken = localStorage.getItem("suptoken");
-        const gymId = localStorage.getItem("gymId");
+        const gymId = localStorage.getItem(STORAGE_KEYS.GYM_ID);
 
         try {
-            response = await axios.get(urlGetGymById, {
-                headers: {
-                    Authorization: suptoken,
-                },
-                params: {
-                    id: gymId,
-                },
-            });
+            const response = await getGymById(gymId);
+            
+            if (!response || !response.success) {
+                showError(response?.message || "Failed to fetch gym details.");
+                return;
+            }
 
-            //setData(response.data);
-
-            console.log(response.data.data);
+            const gym = response.data.gym;
+            setGymName(gym.gymName);
+            setAddress(gym.address);
+            setAdminName(gym.adminName);
+            setUserName(gym.username);
+            setPhoneNumber(gym.mobileNumber?.slice(3, 13) || '');
+            setPassword(gym.password);
         } catch (error) {
-            console.error("Error fetching data:", error);
+            showError("An error occurred while fetching gym details.");
+        } finally {
+            setDataLoading(false);
         }
-        setDataLoading(false);
-        if (!response) {
-            alert("Something went wrong");
-            return;
-        }
-        if (!response.data.success) {
-            alert(response.data.message);
-            return;
-        }
-        //console.log(response.data.data.gym.gymName);
-
-        setGymName(response.data.data.gym.gymName);
-        setAddress(response.data.data.gym.address);
-        setAdminName(response.data.data.gym.adminName);
-        setUserName(response.data.data.gym.username);
-        setPhoneNumber(response.data.data.gym.mobileNumber.slice(3, 13));
-        setPassword(response.data.data.gym.password);
     };
 
     return (
         <div className="gym-form">
             <h2>Update Gym</h2>
-
             {!dataLoading && (
                 <form onSubmit={handleSubmit}>
                     <div className="input-group">
@@ -220,7 +159,6 @@ const UpdateGymForm = () => {
                     {!loading && <button type="submit">Update Gym</button>}
                 </form>
             )}
-
             {dataLoading && <CircularProgress />}
         </div>
     );
